@@ -2,7 +2,6 @@ var mysql = require('mysql');
 var inquirer = require('inquirer');
 const cTable = require('console.table');
 
-
 var connection = mysql.createConnection({
     host: "localhost",
     port: 3306,
@@ -14,68 +13,73 @@ var connection = mysql.createConnection({
 connection.connect(function(err) {
     if (err) throw err;
     console.log("connected as id " + connection.threadId);
-
-    showAllProducts('buy');
-    // connection.end();
 });
 
-function showAllProducts(buyOrNo){
-    connection.query("SELECT * FROM products",function(err,res){
-        console.log("gonna show all products");
+showCustomerProducts();
+// showCustomerProducts();
+
+function showCustomerProducts(){
+    connection.query("SELECT id,product_name,price,department_name FROM products",function(err,res){
         if (err) throw err;
-        console.log('\n\n');
+        console.log('\n');
         console.table(res);
-        if(buyOrNo=== 'buy'){
-            buyProduct();
-        }
+        buyProduct();
     })
 }
 
 function buyProduct(){
-    console.log("asking product ID")
     inquirer.prompt([
         /* Pass your questions in here */
         {
             name: 'idChosen',
             type: 'input',
-            message: 'What is the id of the item you would like to buy?',
+            message: 'ID:       ',
+        },
+        {
+            name: 'numberToBuy',
+            type: 'input',
+            message: 'QUANTITY: ',
         }
     ])
     .then(answers=>{ 
         let idChosen = answers.idChosen;
-        console.log(idChosen);
 
-        //dummy proof input 
+        //need to validate input 
         connection.query("SELECT * FROM products WHERE id=?",[idChosen],function(err,res){
             if(err) throw err;
-            console.log(res);
+          
             let quantity = res[0].stock_quantity;
+            let amountToPurchase=answers.numberToBuy;
+            let price = res[0].price;
 
-            if(quantity<=0){
-                console.log("not enough stock");
+            if(quantity<=0||answers.numberToBuy>quantity){
+                console.log(
+                    "----------------------------------"+'\n'+
+                    "         NOT ENOUGH STOCK         "+'\n'+
+                    "----------------------------------"
+                );
+                showCustomerProducts();
             }else{
-                console.log("current stock: "+quantity)
+                let newQuantity=quantity-answers.numberToBuy;
+                let newSales=parseFloat(amountToPurchase)*parseFloat(price);
+                updateProducts("stock_quantity",newQuantity,"id",parseInt(idChosen));
+                updateProducts("product_sales",newSales,"id",parseInt(idChosen));
+                // updateTable();
+                showCustomerProducts();
             }
-            connection.end();
         })
     })
 }
 
-// inquirer.prompt([
-//     /* Pass your questions in here */
-//     {
-//         name: 'userChoice',
-//         type: 'list',
-//         choices: ['POST AN ITEM','BID ON AN ITEM'],
-//         message: 'WHAT WOULD YOU LIKE TO DO?',
-//     }
-// ])
-// .then(answers=>{
-//     console.log(answers.userChoice)
+function updateProducts(colToChange,newValue,basedOn,cond){
+    // console.log("UPDATING PRODUCTS: "+typeof(col)+" "+typeof(newValue)+" "+typeof(cond1)+' '+typeof(cond2))
+    connection.query("UPDATE products SET "+colToChange+"=? WHERE "+basedOn+"=?",[newValue,cond],function(err,res){
+        if(err)throw err;
+    });
+}
 
-//     if(answers.userChoice==='BID ON AN ITEM'){
-//         bidItem();
-//     }else{
-//         postItem();
-//     }
-// })
+function updateTable(tableName,colToChange,newValue,basedOn,cond){
+    connection.query("UPDATE "+tableName+" SET "+colToChange+"=? WHERE "+basedOn+"=?",[newValue,cond],function(err,res){
+        if(err)throw err;
+    });
+}
