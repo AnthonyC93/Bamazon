@@ -51,6 +51,7 @@ function askUser(){
 function showProducts2(sortedBy){
     connection.query('SELECT * FROM products ORDER BY '+sortedBy+' ASC',function(err,res){
         if(err)throw err;
+        console.log('\n')
         console.table(res);
         askUser();
     })
@@ -65,7 +66,6 @@ function sortedShowProducts(){
         }
     ])
     .then(answers=>{
-        console.log(answers.sortBy)
         let sortedBy;
         switch(answers.sortBy){
             case '  ID':
@@ -81,9 +81,9 @@ function sortedShowProducts(){
             sortedBy='stock_quantity';
             break;
         }
-        console.log(sortedBy)
         connection.query('SELECT * FROM products ORDER BY '+sortedBy+' ASC',function(err,res){
             if(err)throw err;
+            console.log('\n')
             console.table(res);
             askUser();
         })
